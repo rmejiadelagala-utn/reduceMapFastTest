@@ -18,6 +18,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <stdint.h>
 
 typedef char* t_filename;
 
@@ -38,13 +39,6 @@ typedef struct {
 	t_list *planificacion; //serían de t_planificacion
 } t_planificacionPorCadaArchivo;
 
-typedef struct {
-	int id;
-	uint16_t puerto;
-	struct in_addr ip;
-}__attribute__ ((__packed__)) t_registro_id_ipPuerto;
-
-in_addr_t dafa;
 
 typedef struct {
 	int id_Job;	//Va a ser otra cosa. Solo es la idea

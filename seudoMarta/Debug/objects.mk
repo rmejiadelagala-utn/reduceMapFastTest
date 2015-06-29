@@ -4,5 +4,5 @@
 
 USER_OBJS :=
 
-LIBS := -lsocketes
+LIBS := -lsocketes -lpthread -lcommons
 
