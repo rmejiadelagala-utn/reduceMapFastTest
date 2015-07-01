@@ -25,7 +25,7 @@ endif
 all: seudoMarta
 
 dependents:
-	-cd /home/rmejia/Repositories/tp-2015-1c-socketes-planificados/Socketes/Debug && $(MAKE) all
+	-cd /home/rmejia/Repositories/tp-2015-1c-socketes-planificados/Socketes/Debug && $(MAKE) clean all
 
 # Tool invocations
 seudoMarta: $(OBJS) $(USER_OBJS) /home/rmejia/Repositories/tp-2015-1c-socketes-planificados/Socketes/Debug/libsocketes.so

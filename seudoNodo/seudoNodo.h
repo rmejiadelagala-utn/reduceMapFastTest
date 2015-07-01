@@ -46,7 +46,7 @@ typedef struct {
  	char* temp_file_name;
  } t_solicitudMap;
 
-int conexionJobs(int sock);
+int conexionJobs(int* sock);
 int recibirSolicitudDeJob(int sock);
 t_solicitudMap deserealizarSolMapper(int sock);
 

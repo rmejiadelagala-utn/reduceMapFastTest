@@ -3,6 +3,8 @@
 	<name>seudoNodo</name>
 	<comment></comment>
 	<projects>
+		<project>commons</project>
+		<project>socketes</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>

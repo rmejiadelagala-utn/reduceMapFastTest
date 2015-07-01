@@ -115,7 +115,7 @@ t_solicitudMap deserealizarSolMapper(int sock){
 }
 
 void ejecutarMapper(char * path_s, char* path_tmp, char* datos_bloque){
-
+	printf("estoy en ejecutar Mapper\n");
 	if ((redireccionar_stdin_stdout(path_s, path_tmp, datos_bloque)) < 0)
 		printf("Error al ejecutar Mapper");
 	return;
@@ -129,10 +129,11 @@ void ejecutarReduce(char * path_s, char* path_tmp, char* datos_bloque){
 	return;
 }
 
-int recibirSolicitudDeJob(sock){
+int recibirSolicitudDeJob(int sock){
 	int tipoSolicitud, nbytes;
 	t_solicitudMap solMap;
 	nbytes=recvall(sock,&tipoSolicitud,sizeof(uint32_t));
+	printf("tipoSolicitud=%d\n",tipoSolicitud);
 	switch(tipoSolicitud){
     case ORDER_MAP:
         printf("ejecutar mapper\n");
@@ -152,16 +153,18 @@ int recibirSolicitudDeJob(sock){
 	return 0;
 }
 
-int conexionJobs (int sock){
+int conexionJobs (int* sock){
 	int nbytes, protocolo,tipoSolicitud; //Mapper o Reduce
-
-	if ((nbytes=recvall(sock,&protocolo,sizeof(uint32_t)))>0){
+	printf("estoy en conexionJobs\n");
+	printf("recibi el sock %d\n",*sock);
+	int sockJob=*sock;
+	if ((nbytes=recvall(sockJob,&protocolo,sizeof(uint32_t)))>0){
 		if(protocolo==CONEXION_JOB_A_NODO){
-			printf("Tengo un Job conectado, atendido por sock: %d",sock);
-			recibirSolicitudDeJob(sock);
+			printf("Tengo un Job conectado, atendido por sock: %d\n",sockJob);
+			recibirSolicitudDeJob(sockJob);
 		} else {
 			printf("No entiendo el protocolo, cierro conexion");
-			close(sock);
+			close(sockJob);
 		}
 	} else {
 		printf("error al recibir conexion de job");

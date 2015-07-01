@@ -24,7 +24,8 @@ int main(int argc, char** argv) {
 	archCfg=(char*)malloc(strlen(argv[1]));
 	archCfg=argv[1];
 	config=config_create(archCfg);
-
+	printf("muestro puertonodo, si puedo, significa que config esta ok\n");
+	printf("puerto_nodo: %d\n", config_get_int_value(config, "PUERTO_NODO"));
 	if (crearServerMultiHilo(config_get_int_value(config, "PUERTO_NODO"),(void*)conexionJobs) == 0)
 		printf("Nodo en la espera de conexiones de JOBs y otros Nodos\n");
 
