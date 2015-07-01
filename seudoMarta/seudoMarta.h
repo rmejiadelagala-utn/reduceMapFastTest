@@ -22,21 +22,17 @@
 
 typedef char* t_filename;
 
-typedef struct {
-	char *ipPuerto; //quizas conviene en un futuro que
-	int numeroDeBloqueEnNodo;
-} t_bloqueEnNodo;
 
 typedef struct {
 	int numeroDeBloqueArchivo;
 	int mapOReduce;
 	int estado;
-	t_list *copiasDelBloque; //serían de t_bloqueEnNodo
+	t_list *copiasDelBloque; //serÃ­an de t_bloqueEnNodo
 } t_planificacion; //esta la genera con el algoritmo de planificar las tareas
 
 typedef struct {
 	char *nombreArchivo;
-	t_list *planificacion; //serían de t_planificacion
+	t_list *planificacion; //serÃ­an de t_planificacion
 } t_planificacionPorCadaArchivo;
 
 
@@ -45,19 +41,19 @@ typedef struct {
 	char *nombreArchivoResultado;
 	int combinerONO;
 	int estado;
-	t_list *planificacionesArchivo; //serían de t_planificacionPorCadaArchivo
+	t_list *planificacionesArchivo; //serÃ­an de t_planificacionPorCadaArchivo
 } t_jobsAPlanificar;
 
 ////////// Info pedidad a FS /////////////
 typedef struct{
 	int numeroDeBloque;
-	t_list *bloquesEnNodo; //serían t_bloqueEnNodo
+	t_list *bloquesEnNodo; //serÃ­an t_bloqueEnNodo
 } t_bloqueDeArchivo;
 
 
 typedef struct {
 	char *nombreArchivo;
-	t_list *bloquesDeArch; //serían t_bloqueDeArchivo
+	t_list *bloquesDeArch; //serÃ­an t_bloqueDeArchivo
 } t_infoDeFileSystem;
 
 ///////// Info de carga de Nodos en el Sistema /////////
@@ -68,7 +64,7 @@ typedef struct {
 } t_infoNodo;
 
 /////////////Nuevas estructuras de Marta que surgen del algorit. de distribuir y manda mensajes////////////
-//////////// Estructuras de MaRTA Para envio de mesajes y demás /////////////////////////
+//////////// Estructuras de MaRTA Para envio de mesajes y demÃ¡s /////////////////////////
 typedef struct {
 	int idJob;
 	int combiner;
