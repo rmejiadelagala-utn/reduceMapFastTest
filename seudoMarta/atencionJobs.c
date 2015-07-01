@@ -25,7 +25,7 @@ int ordenarMapAJob(int socketJob) {
 	}
 	destinoMap->ip_nodo= iptmp.s_addr;
 	printf("valor de ip_nodo: %d\n",destinoMap->ip_nodo);
-	destinoMap->puerto_nodo=5003;
+	destinoMap->puerto_nodo=5032;
 	destinoMap->temp_file_name=strdup("salida26062015.tmp");
 	//mostrar_map_dest(destinoDeMap);
 
@@ -36,7 +36,7 @@ int ordenarMapAJob(int socketJob) {
 	bufferAgregarInt(map_order, destinoMap->ip_nodo);
 	bufferAgregarInt(map_order, destinoMap->puerto_nodo);
 	bufferAgregarInt(map_order, destinoMap->block);
-	buffer_add_string(map_order, destinoMap->temp_file_name);
+	bufferAgregarString(map_order, destinoMap->temp_file_name,strlen(destinoMap->temp_file_name));
 	result = enviarBuffer(map_order, socketJob);
 	if (result < 0) {
 		printf("No se Pudo enviar la Orden de Map al Job");
@@ -52,17 +52,17 @@ int deserealizar(char* buffer, int sockCliente, t_solicitud* solicitud) {
 	memcpy(&tam_payload,buffer,sizeof(uint32_t));
 	free(buffer); //no lo uso mas
 	printf("tam_payload: %d\n", tam_payload);
-	//payload tiene los datos sin el tamaño total
+	//payload tiene los datos sin el tamaÃ±o total
 	payload=(char*)malloc(tam_payload+1);
 	if((nbytes=recv(sockCliente,payload,tam_payload,0))<=0) {
-        // error o conexión cerrada por el cliente
+        // error o conexiÃ³n cerrada por el cliente
         if (nbytes == 0) {
-            // conexión cerrada
-            printf("selectserver: socket %d cerró conexión\n", sockCliente);
+            // conexiÃ³n cerrada
+            printf("selectserver: socket %d cerrÃ³ conexiÃ³n\n", sockCliente);
         } else {
             perror("recv");
         }
-    //    close(sockCliente); // bye! tal vez aca no tenga que cerrarlo sino en la funcion que me llamó.
+    //    close(sockCliente); // bye! tal vez aca no tenga que cerrarlo sino en la funcion que me llamÃ³.
 	}
 	else {
 		int i=0;
@@ -87,7 +87,7 @@ int deserealizar(char* buffer, int sockCliente, t_solicitud* solicitud) {
 		}
 		memcpy(&long_arch ,(payload+cursor),sizeof(uint32_t));
 		cursor+=sizeof(uint32_t);
-		printf("tamaño reservado para archivo resultado: %d\n",long_arch);
+		printf("tamaÃ±o reservado para archivo resultado: %d\n",long_arch);
 		solicitud->archivo_resultado=(char*)malloc(long_arch+1);
 		memcpy(solicitud->archivo_resultado,(payload + cursor), long_arch );
 		solicitud->archivo_resultado[long_arch]='\0';
@@ -146,17 +146,17 @@ void* atencionJobs(void* sock){
 
 					buff=(char*)malloc(sizeof(uint32_t));
                     if ((nbytes = recv(i, buff, sizeof(uint32_t), 0)) <= 0) {
-                        // error o conexión cerrada por el cliente
+                        // error o conexiÃ³n cerrada por el cliente
                         if (nbytes == 0) {
-                            // conexión cerrada
-                            printf("selectserver: socket %d cerró conexión\n", i);
+                            // conexiÃ³n cerrada
+                            printf("selectserver: socket %d cerrÃ³ conexiÃ³n\n", i);
                         } else {
                             perror("recv");
                         }
                         close(i); // bye!
                         FD_CLR(i, &master); // eliminar del conjunto maestro
                     } else {
-                        // tenemos datos de algún cliente
+                        // tenemos datos de algÃºn cliente
                         // ahora lo muestro por stdout pero debo deserealizar y usar la data
                     	t_solicitud* solicitud=(t_solicitud*)malloc(sizeof(t_solicitud));
                         deserealizar(buff,i,solicitud);
