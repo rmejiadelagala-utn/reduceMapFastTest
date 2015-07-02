@@ -49,5 +49,6 @@ typedef struct {
 int conexionJobs(int* sock);
 int recibirSolicitudDeJob(int sock);
 t_solicitudMap deserealizarSolMapper(int sock);
+int redirec_stdin_stdout(char *pathProgr,char *pathArchSal, char* data);
 
 #endif /* SEUDONODO_H_ */

@@ -72,34 +72,11 @@ void crearScriptReduce(const char* codigo_script){
 	return;
 }
 
-int redireccionar_stdin_stdout(char *pathPrograma,char *pathArchivoSalida,char* data_bloque)
-{
-	FILE *stdin = NULL;
 
-	char *comando = malloc(strlen(pathPrograma)+11+strlen(pathArchivoSalida));
-
-	sprintf(comando,"%s | sort > %s",pathPrograma, pathArchivoSalida);	
-
-	stdin = popen (comando,"w");
-
-	if (stdin != NULL){
-
-		fprintf(stdin, "%s\n",data_bloque);
-
-		pclose (stdin);
-		free(comando);
-	}
-	else{
-
-		printf("No se pudo ejecutar el programa!");
-		return -1;
-	}
-
-	return 0;
-}
 
 t_solicitudMap deserealizarSolMapper(int sock){
 	t_solicitudMap solicitudMap;
+	printf("ingrese a funcion deserealizar\n");
 		int nroBloque,tam;
 		char* codigoMap, arch_tmp;
 		recvall(sock,&tam,sizeof(uint32_t));
@@ -111,12 +88,13 @@ t_solicitudMap deserealizarSolMapper(int sock){
 		solicitudMap.temp_file_name=(char*)malloc(tam+1);
 		recvall(sock,solicitudMap.temp_file_name,tam);
 		solicitudMap.temp_file_name[tam]='\0';
+		printf("saliendo de funcion deserealizar\n");
 		return solicitudMap;
 }
 
 void ejecutarMapper(char * path_s, char* path_tmp, char* datos_bloque){
 	printf("estoy en ejecutar Mapper\n");
-	if ((redireccionar_stdin_stdout(path_s, path_tmp, datos_bloque)) < 0)
+	if ((redirec_stdin_stdout(path_s, path_tmp, datos_bloque)) < 0)
 		printf("Error al ejecutar Mapper");
 	return;
 
@@ -124,13 +102,13 @@ void ejecutarMapper(char * path_s, char* path_tmp, char* datos_bloque){
 
 void ejecutarReduce(char * path_s, char* path_tmp, char* datos_bloque){
 
-	if ((redireccionar_stdin_stdout(path_s, path_tmp, datos_bloque)) < 0)
+	if ((redirec_stdin_stdout(path_s, path_tmp, datos_bloque)) < 0)
 		printf("Error al ejecutar Reduce");
 	return;
 }
 
 int recibirSolicitudDeJob(int sock){
-	int tipoSolicitud, nbytes;
+	int tipoSolicitud, nbytes,lenBloque;
 	t_solicitudMap solMap;
 	nbytes=recvall(sock,&tipoSolicitud,sizeof(uint32_t));
 	printf("tipoSolicitud=%d\n",tipoSolicitud);
@@ -139,8 +117,14 @@ int recibirSolicitudDeJob(int sock){
         printf("ejecutar mapper\n");
         solMap=deserealizarSolMapper(sock);
         //harcod: para probar agrego este texto que seria el bloque;
-        char* bloque="Un nodo que se conecta al sistema puede ser un nodo sini datos (nuevo) o un Nodo\nque ya pertencio al Filesystem y contiene bloques de datos que corresponde a archivos de MDFS.\n";
-        bloque[strlen(bloque)]='\0';
+		printf("muestro en nodo codigo de rutina mapper\n");
+		printf("%s\n",solMap.codigoRutina);
+		printf("muestro bloque que mando para mapear:\n");
+        char* bloque;
+        strcpy(bloque,"Un nodo que se conecta al sistema puede ser un nodo sini datos (nuevo) o un Nodo\nque ya pertencio al Filesystem y contiene bloques de datos que corresponde a archivos de MDFS.\n");
+        lenBloque=strlen(bloque);
+        bloque[lenBloque]='\0';
+		printf("%s\n",bloque);
         ejecutarMapper(solMap.codigoRutina, solMap.temp_file_name, bloque );
         break;
     case ORDER_REDUCE:
