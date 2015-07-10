@@ -5,16 +5,29 @@
  *      Author: utnso
  */
 #include "seudoNodo.h"
+#include <string.h>
 
 uint32_t TAMANIODISCO, TAMANIOARCHIVO;
 int fd = -1, fd_a;
 
+int  responderResultadoAJob(int sockJob,int resultMap){
+	 t_buffer* buffer = crearBufferConProtocolo(RES_MAP);
+	 bufferAgregarInt(buffer,resultMap);
+	 int resultado = enviarBuffer(buffer,sockJob);
+     return resultado;
+}
 
-void crearScriptMapper(const char* codigo_script){
+
+char* crearScriptMapper(const char* codigo_script){
 
 	FILE* scriptMapper;
+	/* harcode el nombre de la rutina, luego debo ver como generarlo
+	 * con un date al final, para diferenciarlo de otros mappers de
+	 * otros jobs que puedan correr en paralelo
+	 */
+	char*pathRutina="/tmp/mapper.sh";
 
-	if((scriptMapper=fopen("/tmp/mapper.sh","w+"))==NULL){
+	if((scriptMapper=fopen(pathRutina,"w+"))==NULL){
 		perror("Error al crear el script del mapper");
 		exit(1);
 	}
@@ -23,13 +36,13 @@ void crearScriptMapper(const char* codigo_script){
 	
 	char *permisosCommand = string_new();
 
-	string_append(&permisosCommand, "chmod u+x ");
+	string_append(&permisosCommand, "chmod a+x ");
 	string_append(&permisosCommand,"/tmp/mapper.sh");
 
 	system(permisosCommand);
 	fclose(scriptMapper);
 
-	return;
+	return pathRutina;
 }
 
 void crearScriptReduce(const char* codigo_script){
@@ -63,7 +76,7 @@ void crearScriptReduce(const char* codigo_script){
 	
 	char *permisosCommand = string_new();
 
-	string_append(&permisosCommand, "chmod u+x ");
+	string_append(&permisosCommand, "chmod a+x ");
 	string_append(&permisosCommand,"/tmp/reduce.pl");
 
 	system(permisosCommand);
@@ -88,22 +101,25 @@ t_solicitudMap deserealizarSolMapper(int sock){
 		solicitudMap.temp_file_name=(char*)malloc(tam+1);
 		recvall(sock,solicitudMap.temp_file_name,tam);
 		solicitudMap.temp_file_name[tam]='\0';
+		printf("%s\n",solicitudMap.temp_file_name);
 		printf("saliendo de funcion deserealizar\n");
 		return solicitudMap;
 }
 
-void ejecutarMapper(char * path_s, char* path_tmp, char* datos_bloque){
+int ejecutarMapper(char * path_s, char* path_tmp, char* datos_bloque){
 	printf("estoy en ejecutar Mapper\n");
-	if ((redirec_stdin_stdout(path_s, path_tmp, datos_bloque)) < 0)
-		printf("Error al ejecutar Mapper");
-	return;
+	if ((redirec_stdin_stdout(path_s, path_tmp, datos_bloque)) < 0){
+		return -1;
+	}
+	return 0;
 
 }
 
 void ejecutarReduce(char * path_s, char* path_tmp, char* datos_bloque){
 
-	if ((redirec_stdin_stdout(path_s, path_tmp, datos_bloque)) < 0)
+	if ((redirec_stdin_stdout(path_s, path_tmp, datos_bloque)) < 0){
 		printf("Error al ejecutar Reduce");
+	}
 	return;
 }
 
@@ -111,6 +127,7 @@ int recibirSolicitudDeJob(int sock){
 	int tipoSolicitud, nbytes,lenBloque;
 	t_solicitudMap solMap;
 	nbytes=recvall(sock,&tipoSolicitud,sizeof(uint32_t));
+	char* pathRutina;
 	printf("tipoSolicitud=%d\n",tipoSolicitud);
 	switch(tipoSolicitud){
     case ORDER_MAP:
@@ -120,12 +137,23 @@ int recibirSolicitudDeJob(int sock){
 		printf("muestro en nodo codigo de rutina mapper\n");
 		printf("%s\n",solMap.codigoRutina);
 		printf("muestro bloque que mando para mapear:\n");
-        char* bloque;
+		lenBloque=strlen("Un nodo que se conecta al sistema puede ser un nodo sini datos (nuevo) o un Nodo\nque ya pertencio al Filesystem y contiene bloques de datos que corresponde a archivos de MDFS.\n");
+        char* bloque=(char*)malloc(lenBloque);
         strcpy(bloque,"Un nodo que se conecta al sistema puede ser un nodo sini datos (nuevo) o un Nodo\nque ya pertencio al Filesystem y contiene bloques de datos que corresponde a archivos de MDFS.\n");
         lenBloque=strlen(bloque);
         bloque[lenBloque]='\0';
 		printf("%s\n",bloque);
-        ejecutarMapper(solMap.codigoRutina, solMap.temp_file_name, bloque );
+		pathRutina=crearScriptMapper(solMap.codigoRutina);
+        if(ejecutarMapper(pathRutina, solMap.temp_file_name, bloque )<0){
+        	printf("error al ejecutar Mapper\n");
+        	responderResultadoAJob(sock,NOTOK_MAP);
+        	return -1;
+        } else {
+        	printf("termino ok el mapper\n");
+        	responderResultadoAJob(sock,OK_MAP);
+        }
+        free(pathRutina);
+        free(bloque);
         break;
     case ORDER_REDUCE:
         printf("ejecutar reducer\n");

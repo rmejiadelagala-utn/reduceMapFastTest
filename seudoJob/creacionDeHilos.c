@@ -65,6 +65,9 @@ void* hilo_mapper (void* arg_thread){
 	sockNodo= crearCliente(ip_nodo_char,puerto_nodo);
 	//Enviamos rutina mapper a Nodo
 	fflush(stdout);
+	t_buffer* buffer = crearBufferConProtocolo(CONEXION_JOB_A_NODO);
+	enviarBuffer(buffer,sockNodo);
+	//bufferAgregarInt(buffer,ORDER_MAP);
 	res=enviarMapperANodo(sockNodo,codigoMapper,block,tmp_file_name);
 	if(res<0){
 		printf("todo mal, no pude enviar mapper a Nodo: %d", ip_nodo_char);

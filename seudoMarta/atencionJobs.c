@@ -143,7 +143,7 @@ void* atencionJobs(void* sock){
 				}
 				else {
                     // gestionar datos de un cliente
-
+					//Aca debo usar protocolo para saber si es conexion o respta.
 					buff=(char*)malloc(sizeof(uint32_t));
                     if ((nbytes = recv(i, buff, sizeof(uint32_t), 0)) <= 0) {
                         // error o conexiÃ³n cerrada por el cliente
@@ -156,7 +156,7 @@ void* atencionJobs(void* sock){
                         close(i); // bye!
                         FD_CLR(i, &master); // eliminar del conjunto maestro
                     } else {
-                        // tenemos datos de algÃºn cliente
+                        // tenemos datos de algun cliente
                         // ahora lo muestro por stdout pero debo deserealizar y usar la data
                     	t_solicitud* solicitud=(t_solicitud*)malloc(sizeof(t_solicitud));
                         deserealizar(buff,i,solicitud);

@@ -29,19 +29,21 @@ int redirec_stdin_stdout(char *pathPrograma,char *pathArchivoSalida, char* data_
 	void escribirArchivoEntrada(FILE *archivo, char* data_bloque)
 	{
 		fprintf (archivo, data_bloque);
-
+		return;
 	}
 	FILE *entradaARedirigir = NULL;
 
-	char *comandoEntero=malloc(strlen(pathPrograma)+11+strlen(pathArchivoSalida));
+	char *comandoEntero=malloc(strlen(pathPrograma)+12+strlen(pathArchivoSalida));
 
 
-	sprintf(comandoEntero,"%s | sort > %s",pathPrograma,pathArchivoSalida);	//Ordena las cadenas entrantes
+	sprintf(comandoEntero,"%s \| sort > %s",pathPrograma,pathArchivoSalida);	//Ordena las cadenas entrantes
 
 	entradaARedirigir = popen (comandoEntero,"w");
 
 	if (entradaARedirigir != NULL)
 	{
+		printf("estoy en escribirArchivoEntrada(entradaARedirigir, data_bloque)");
+
 		escribirArchivoEntrada(entradaARedirigir, data_bloque);
 
 		pclose (entradaARedirigir);
