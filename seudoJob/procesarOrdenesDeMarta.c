@@ -22,22 +22,27 @@ int procesarOrdenesDeMarta(int sockMarta, t_rutinas* rutinas) {
             break;
         case ORDER_REDUCE:
             printf("Crear hilo reducer\n");
-//            crearHiloReduce(sockMarta,rutinas->REDUCE);
+            crearHiloReduce(sockMarta,rutinas->REDUCE);
             break;
         case FIN_OPERACION:
             printf("Se terminó de procesar todos los archivos solicitados\n");
             finOperacion=true;
-            }
+            break;
+        default:
+			printf("No se esta respetando el protocolo de comunicacion\n");
+			printf("debe ser: ORDER_MAR u ORDER_REDUCE");
+			break;
         }
+      }
 
-        if (recibido == 0) {
+      if (recibido == 0) {
             printf("Marta desconectado.\n");
             return 2;
-        }
-        if (recibido < 0) {
+       }
+       if (recibido < 0) {
             printf("Error.");
             return 1;
-        }
+       }
     return 0;
 }
 

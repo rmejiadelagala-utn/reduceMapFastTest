@@ -21,7 +21,7 @@ int recibirResultadoFromNodo(int sockNodo){
 		if((recibido=recvall(sockNodo,&protocolo,sizeof(uint32_t)))<0){
 			return -1;
 		}
-		if(protocolo==RES_MAP){
+		if(protocolo==RES_MAP || protocolo==RES_REDUCE){
 			recvall(sockNodo,&rptaNodoAJob,sizeof(uint32_t));
 		}else {
 			printf("no entiendo el protocolo, usa: RES_MAP");
@@ -30,15 +30,13 @@ int recibirResultadoFromNodo(int sockNodo){
 
 	}
 
-int responderOrdenMapAMarta(int sockMarta,t_ordenMap ordenMapper, int resOper){
+int responderResultOrdenAMarta(int sockMarta,int id_operacion, int resOper){
 	int result_envio;
 	t_buffer* buffer = crearBuffer();//crearBufferConProtocolo(RES_MAP);
-	if(resOper==OK_MAP){
-		bufferAgregarInt(buffer,OK_MAP);
-	} else
-		bufferAgregarInt(buffer,NOTOK_MAP);
-	bufferAgregarInt(buffer,ordenMapper.id_map);
-	//bufferAgregarInt(buffer,ordenMapper.id_nodo);
+	//Pero tengo que usar algun protocolo para que marta sepa si estoy
+	//respondiendo el resultado de un maper o reduce --- FALTA!!!!! ---
+	bufferAgregarInt(buffer,resOper);
+	bufferAgregarInt(buffer,id_operacion);
 	result_envio=enviarBuffer(buffer,sockMarta);
 	return result_envio;
 }
@@ -54,7 +52,7 @@ void* hilo_mapper (void* arg_thread){
 	char* ip_nodo_char;
 	sockMarta=ordenToNodo.sockMarta;
 	printf("El path del codigo mapper es %s\n",ordenToNodo.pathMapper);
-	codigoMapper=subirCodigoDeMapper(ordenToNodo.pathMapper);
+	codigoMapper=subirCodigoFromPathToBuffer(ordenToNodo.pathMapper);
 	ordenMapper=*(ordenToNodo.ordenMapper);
 	tmp_file_name=strdup(ordenMapper.temp_file_name);
 	block=ordenMapper.block;
@@ -81,7 +79,7 @@ void* hilo_mapper (void* arg_thread){
 		printf("mapper id= %d, falló, aviso a Marta de esto\n",ordenMapper.id_map);
 	}
 	//re-enviar a marta resultado de la operacion, recibida de Nodo
-	envioRes=responderOrdenMapAMarta(sockMarta,ordenMapper,resOper);
+	envioRes=responderResultOrdenAMarta(sockMarta,ordenMapper.id_map,resOper);
 	if(envioRes<0){
 		printf("no pude enviar la respuesta a marta, algo pasó\n");
 	}
@@ -114,13 +112,112 @@ void crearHiloMapper(int sockMarta, char* pathMapper) {
 	return ;
 }
 
-/*
-void* hilo_reduce (void* arg){
-	*((int*)arg)=1; //el contenido a lo que apunta arg es =1, es solo para probar
+
+/**********************************************************
+ *
+ *                   PARTE DEL REDUCE
+ *
+ **********************************************************/
+
+t_ordenReduce* recibirOrdenReduceDeMarta(int sockMarta){
+		t_ordenReduce* ordenReduce = malloc(sizeof(t_ordenReduce));
+		uint32_t cantArchAreducir;
+		recvall(sockMarta,&(ordenReduce->id_reduce),sizeof(uint32_t));
+		recvall(sockMarta,&(ordenReduce->ip_nodo),sizeof(uint32_t));
+		recvall(sockMarta,&(ordenReduce->puerto_nodo),sizeof(uint32_t));
+		recvall(sockMarta,&(ordenReduce->cantArchAreducir),sizeof(uint32_t));
+		//reservo la cantidad necesaria de punteros t_nodoArchTmp
+		ordenReduce->nodosArchTmp=(t_nodoArchTmp*)malloc(sizeof(t_nodoArchTmp*)*(ordenReduce->cantArchAreducir));
+		int i=0;
+		uint32_t tamanioArch=0;
+		while (i < (ordenReduce->cantArchAreducir)) {
+			recvall(sockMarta,&(ordenReduce->nodosArchTmp[i]->ip_nodo),sizeof(uint32_t));
+			recvall(sockMarta,&(ordenReduce->nodosArchTmp[i]->puerto_nodo),sizeof(uint32_t));
+			recvall(sockMarta,&(tamanioArch),sizeof(uint32_t));
+			(ordenReduce->nodosArchTmp[i]->archTmp)=(char*)malloc(tamanioArch+1);
+			recvall(sockMarta,(ordenReduce->nodosArchTmp[i]->archTmp),tamanioArch);
+			i++;
+		}
+		recvall(sockMarta,&(tamanioArch),sizeof(uint32_t));
+		(ordenReduce->archResultado)=(char*)malloc(tamanioArch+1);
+		recvall(sockMarta,(ordenReduce->archResultado),tamanioArch);
+		return ordenReduce;
+	}
+
+
+int enviarReduceANodo(int sockNodo,char* codigoReduce, int cantArchivos,
+					  t_nodoArchTmp** nodosArchTmp,char* archResultado){
+	t_buffer* buffer = crearBufferConProtocolo(ORDER_REDUCE);
+    bufferAgregarString(buffer,codigoReduce,strlen(codigoReduce)+1);
+    bufferAgregarInt(buffer,cantArchivos);
+    int i=0;
+    while(i < cantArchivos){
+    	bufferAgregarInt(buffer,nodosArchTmp[i]->ip_nodo);
+    	bufferAgregarInt(buffer,nodosArchTmp[i]->puerto_nodo);
+    	bufferAgregarString(buffer,nodosArchTmp[i]->archTmp,strlen(nodosArchTmp[i]->archTmp)+1);
+    }
+    bufferAgregarString(buffer,archResultado,strlen(archResultado)+1);
+	int resultado = enviarBuffer(buffer,sockNodo);
+	return resultado;
 }
 
-void crearHiloReduce(int sockMarta) {
-	pthread_t thread_reduce;
-//	pthread_create (&thread_reduce, NULL, &hilo_reduce, NULL);
+
+void* hilo_reduce (void* arg_thread){
+	t_arg_hilo_reduce ordenToNodo;
+	t_ordenReduce ordenReduce;
+	ordenToNodo= *((t_arg_hilo_reduce*)arg_thread);//copio contenido de arg_thread a ordenToNodo
+	int sockMarta,sockNodo, puerto_nodo,res,envioRes;
+	int resOper; //resultado de la operación de reduce
+	char* archResultado;
+	char* codigoReduce;
+	char* ip_nodo_char;
+	sockMarta=ordenToNodo.sockMarta;
+	printf("El path del codigo reduce es %s\n",ordenToNodo.pathReduce);
+	codigoReduce=subirCodigoFromPathToBuffer(ordenToNodo.pathReduce);
+	ordenReduce=*(ordenToNodo.ordenReduce);
+	archResultado=strdup(ordenReduce.archResultado);
+	puerto_nodo=ordenReduce.puerto_nodo;
+	struct in_addr addr;
+	addr.s_addr=ordenReduce.ip_nodo;
+	ip_nodo_char= inet_ntoa(addr);
+	sockNodo= crearCliente(ip_nodo_char,puerto_nodo);
+	//Enviamos rutina reduce a Nodo
+	fflush(stdout);
+	t_buffer* buffer = crearBufferConProtocolo(CONEXION_JOB_A_NODO);
+	enviarBuffer(buffer,sockNodo);
+	//bufferAgregarInt(buffer,ORDER_MAP);
+	res=enviarReduceANodo(sockNodo,codigoReduce,ordenReduce.cantArchAreducir,ordenReduce.nodosArchTmp,archResultado);
+	if(res<0){
+		printf("todo mal, no pude enviar reduce a Nodo: %d", ip_nodo_char);
+		exit(-1);
+	}
+	//recibir resultado de la Operacion reduce desde el Nodo
+	resOper=recibirResultadoFromNodo(sockNodo);
+	if(resOper==OK_REDUCE){
+		printf("reduce id= %d, terminó OK, aviso a Marta\n",ordenReduce.id_reduce);
+	} else {
+		printf("reduce id= %d, falló, aviso a Marta de esto\n",ordenReduce.id_reduce);
+	}
+	//re-enviar a marta resultado de la operacion, recibida de Nodo
+	envioRes=responderResultOrdenAMarta(sockMarta,ordenReduce.id_reduce,resOper);
+	if(envioRes<0){
+		printf("no pude enviar la respuesta a marta, algo pasó\n");
+	}
+	free(codigoReduce);
+	return NULL;
 }
-*/
+
+
+void crearHiloReduce(int sockMarta, char* pathReduce) {
+	pthread_t thread_reduce;
+	t_ordenReduce* ordenReduce;
+	t_arg_hilo_reduce* arg_thread=(t_arg_hilo_reduce*)malloc(sizeof(t_arg_hilo_reduce));
+	ordenReduce=recibirOrdenReduceDeMarta(sockMarta);
+	arg_thread->sockMarta=sockMarta;
+	arg_thread->pathReduce=strdup(pathReduce);
+	arg_thread->ordenReduce=ordenReduce;
+	pthread_create (&thread_reduce, NULL, &hilo_reduce,(void*)arg_thread);
+	//free(ordenReduce); No puedo liberar aca sino me va a liberar antes de
+	//free(arg_thread);  que termine el hilo, muy malo!!!!
+	return;
+}
