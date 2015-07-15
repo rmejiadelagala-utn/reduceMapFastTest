@@ -29,6 +29,8 @@
 #include <sys/time.h>
 #include <sys/stat.h>
 
+typedef char* t_filename;
+
 typedef struct {
 	char* IP_FS;
 	uint16_t PUERTO_FS;
@@ -45,6 +47,25 @@ typedef struct {
  	uint32_t block;
  	char* temp_file_name;
  } t_solicitudMap;
+
+ /***********************************************
+  * 											*
+  *          PARTE DEL REDUCE					*
+  * 											*
+  ***********************************************/
+
+ typedef struct {
+ 	uint32_t ip_nodo;
+ 	uint32_t puerto_nodo;
+ 	t_filename archTmp;
+ } t_nodoArchTmp;
+
+ typedef struct {
+	 	char* codigoRutina;
+	 	uint32_t cantArchAreducir;
+	 	t_nodoArchTmp** nodosArchTmp;
+	 	t_filename archResultado;
+ }t_solicitudRed;
 
 int conexionJobs(int* sock);
 int recibirSolicitudDeJob(int sock);

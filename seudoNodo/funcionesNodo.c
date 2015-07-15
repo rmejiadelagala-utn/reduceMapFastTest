@@ -45,44 +45,28 @@ char* crearScriptMapper(const char* codigo_script){
 	return pathRutina;
 }
 
-void crearScriptReduce(const char* codigo_script){
-
-//	FILE* fd;
+char* crearScriptReduce(const char* codigo_script){
 	FILE* scriptReduce;
-//	char texto[100];
+	char* pathScript=(char*)malloc(40);
+	pathScript="/tmp/reduce.pl";
 
-//	if((fd =fopen("/home/utnso/Escritorio/TPSO-2015/reduce.pl","r"))==NULL){
-//		perror("Error al abrir el script del reduce");
-//		exit(1);
-//	}
-
-//	while (feof(fd) == 0) {
-//		fgets(texto,100,fd);
-//		printf( "%s",texto );
-//	}
-
-
-	if((scriptReduce=fopen("/tmp/reduce.pl","w+"))==NULL){
+	if((scriptReduce=fopen(pathScript,"w+"))==NULL){
 		perror("Error al crear el script del Reduce");
 		exit(1);
 	}
-
-//	while (feof(fd) == 0) {
-//		fgets(texto,100,fd);
-//		fputs(texto,scriptReduce);
-//	}
 
 	fputs(codigo_script,scriptReduce);
 	
 	char *permisosCommand = string_new();
 
 	string_append(&permisosCommand, "chmod a+x ");
-	string_append(&permisosCommand,"/tmp/reduce.pl");
+	string_append(&permisosCommand,pathScript);
 
 	system(permisosCommand);
+	free(permisosCommand);
 	fclose(scriptReduce);
 
-	return;
+	return pathScript;
 }
 
 
@@ -115,17 +99,19 @@ int ejecutarMapper(char * path_s, char* path_tmp, char* datos_bloque){
 
 }
 
-void ejecutarReduce(char * path_s, char* path_tmp, char* datos_bloque){
-
-	if ((redirec_stdin_stdout(path_s, path_tmp, datos_bloque)) < 0){
-		printf("Error al ejecutar Reduce");
-	}
-	return;
+int ejecutarReduce(t_solicitudRed solRed){
+	char* pathRutina;
+	pathRutina=crearScripReduce(solRed.codigoRutina);
+//	if ((redirec_stdin_stdout(path_s, path_tmp, datos_bloque)) < 0){0
+//		printf("Error al ejecutar Reduce");
+//	}
+	return 0;
 }
 
 int recibirSolicitudDeJob(int sock){
 	int tipoSolicitud, nbytes,lenBloque;
 	t_solicitudMap solMap;
+	t_solicitudRed solRed;
 	nbytes=recvall(sock,&tipoSolicitud,sizeof(uint32_t));
 	char* pathRutina;
 	printf("tipoSolicitud=%d\n",tipoSolicitud);
@@ -157,7 +143,16 @@ int recibirSolicitudDeJob(int sock){
         break;
     case ORDER_REDUCE:
         printf("ejecutar reducer\n");
-//            crearHiloReduce(sockMarta,rutinas->REDUCE);
+        solRed=deserealizarSolReduce(sock);
+        if(ejecutarReduce(solRed)<0){
+        	printf("error al ejecutar Reduce\n");
+        	responderResultadoAJob(sock,NOTOK_REDUCE);
+        	return -1;
+        } else {
+        	printf("termino ok el Reduce\n");
+        	responderResultadoAJob(sock,OK_REDUCE);
+        }
+        free(pathRutina);
         break;
     default:
         printf("error: no se entiende la solicitud\n");
