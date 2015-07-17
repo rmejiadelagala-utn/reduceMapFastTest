@@ -17,6 +17,10 @@ void destruir_RegistroArch(t_RegistroArch* registroArch){
 	return;
 }
 
+int esLocal(t_archivoAReducir* unArchivoAReducir){
+return 1;
+}
+
 /*
  * Abro el archivo que recibo x parametro y devuelvo el filedescriptor
  * es responsabilidad de la funcion que llama el cerrar el fd
