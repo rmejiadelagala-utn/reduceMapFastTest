@@ -31,14 +31,17 @@ int abrirArchivoLocal(char* nombreArch){
 	return fd;
 }
 
-int abrirArchivoRemoto(int ipNodo, int puertoNodo){
+int abrirArchivoRemoto(t_archivoAReducir* unArchivoAReducir ){
 	int sockNodo;
 	char* ip_nodo_char;
 	struct in_addr addr;
-	addr.s_addr=ipNodo;
+	addr.s_addr=unArchivoAReducir->ipNodo;
 	ip_nodo_char= inet_ntoa(addr);
-	sockNodo= crearCliente(ip_nodo_char,puertoNodo);
-	enviarSolicitudDeArchivoRemoto(sockNodo);
+	sockNodo= crearCliente(ip_nodo_char,unArchivoAReducir->puertoNodo);
+	/*enivar solicitud, usar protocolo ENVIO_ARCHIVO_NODO_NODO pero corregir la funcionalidad
+	 * en el case swith ya que no se recibe un archivo si no que esta parte se abre y se
+	 * empezara a solicitar registro x registro*/
+	enviarSolicitudDeArchivoRemoto(sockNodo,unArchivoAReducir->nombreArch);
 	return sockNodo;
 }
 
@@ -108,7 +111,7 @@ t_RegistroArch* getFirstRowsFromArchivosAReducir(t_archivoAReducir* unArchivoARe
     	int fdLocal=abrirArchivoLocal(unArchivoAReducir->nombreArch);
     	unRegistroArch=getRegistroDeArchivo(fdLocal);
     } else {
-    	int sockRemoto=abrirArchivoRemoto(unArchivoAReducir->ipNodo,unArchivoAReducir->puertoNodo);
+    	int sockRemoto=abrirArchivoRemoto(unArchivoAReducir);
     	unRegistroArch=getRegistroDeArchivo(sockRemoto);
     }
     return unRegistroArch;

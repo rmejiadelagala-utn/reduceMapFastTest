@@ -125,6 +125,8 @@ void* conexionJobs(void* sockJobNodo){
 			break;
 
 		case ENVIO_ARCHIVOS_NODO_NODO:
+			char* archivoSolicitado;
+
 			archivosRecibidos = list_create();
 			cantArchivosRecibidos = recibirInt(sock_in);
 			for(i=0;i<cantArchivosRecibidos;i++){
