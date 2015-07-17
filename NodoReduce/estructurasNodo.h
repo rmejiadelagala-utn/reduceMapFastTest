@@ -38,7 +38,7 @@ typedef struct {
 }t_archivoTemporal;
 
 typedef struct {
-	int socket;
+	int socket; //si es de un archivo local sera un filedescriptor simple, si no un socket posta.
 	char* registro;
 }t_RegistroArch;
 

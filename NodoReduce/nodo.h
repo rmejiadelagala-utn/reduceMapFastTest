@@ -33,10 +33,10 @@
 #include "funcionesNodo.h"
 #include "estructurasNodo.h"
 #include <pthread.h>
+#include <stdbool.h>
 
 //#define BLKSIZE 1024*1024*20
 #define BLKSIZE 150 //Ejemplo para probar el data.bin
-
 
 
 int numeroDeMap;
