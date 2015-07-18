@@ -18,7 +18,24 @@ void destruir_RegistroArch(t_RegistroArch* registroArch){
 }
 
 int esLocal(t_archivoAReducir* unArchivoAReducir){
-return 1;
+    struct in_addr ipLocal;
+    inet_aton("127.0.0.1",&ipLocal);
+    // esto solo funcionara si desde marta me mandan
+    // 127.0.0.1 como la ip del nodo local en entero
+    return (unArchivoAReducir->ipNodo == ipLocal.s_addr);
+}
+
+
+int enviarSolicitudDeArchivoRemoto(int sockNodo, char* nombreArch){
+	t_buffer* buffer=crearBufferConProtocolo(ENVIO_ARCHIVOS_NODO_NODO);
+	int len=strlen(nombreArch);
+	bufferAgregarString(buffer,nombreArch,len+1);
+	if(enviarBuffer(buffer, sockNodo)<0){
+		printf("error al enviar solicitud al sockNodo remoto: %d\n",sockNodo);
+		return -1;
+	}
+	liberarBuffer(buffer);
+	return 0;
 }
 
 /*
@@ -28,7 +45,7 @@ return 1;
  */
 int abrirArchivoLocal(char* nombreArch){
 	int fd;
-	char pathNombreArchivo = string_new();
+	char* pathNombreArchivo = string_new();
 	string_append(&pathNombreArchivo, "/tmp/");
 	string_append(&pathNombreArchivo, nombreArch);
 	fd=open(pathNombreArchivo,O_RDONLY);
@@ -54,7 +71,7 @@ int abrirArchivoRemoto(t_archivoAReducir* unArchivoAReducir ){
  * Sea un fd simple o socket, lo leo con syscall: read().
  */
 t_RegistroArch* getRegistroDeArchivo(int fd){
-	t_RegistroArch* registroArch=(	t_RegistroArch*)malloc(sizeof(t_RegistroArch));
+	t_RegistroArch* registroArch=(t_RegistroArch*)malloc(sizeof(t_RegistroArch));
 	int numbytes;
 	char buffer;
 	registroArch->socket=fd;
@@ -83,8 +100,8 @@ t_RegistroArch* getRegistroDeArchivo(int fd){
  * que ya fue enviado al pipe del reduce y ya fue procesado, y obtener el nuevo
  * regitro del archivo correspondiente y agregarlo a la lista
  */
-void actualizarListaDeRegistros(t_list* Lista_reg){
-	t_RegistroArch* nuevoRegistro, regYaProcesado;
+void actualizarListaDeRegistros(t_list* Lista_reg,t_RegistroArch *regYaProcesado ){
+	t_RegistroArch *nuevoRegistro;
 	//pedir el registro siguiente del archivo, del regYaProcesado->socket
 	nuevoRegistro=getRegistroDeArchivo(regYaProcesado->socket);
 	//eliminar de la lista el regYaProcesado, que siempre es el primero
@@ -121,9 +138,20 @@ t_RegistroArch* getFirstRowsFromArchivosAReducir(t_archivoAReducir* unArchivoARe
     return unRegistroArch;
 }
 
-int aparearArchivosDeLaListaArchivosAReducir(t_list* archivosAReducir){
+int aparearArchivosDeLaListaArchivosAReducir(t_list* archivosAReducir, char* scriptReduce, char* archSalida){
 	t_list* Lista_reg; //lista de Registros a aparear
 	t_RegistroArch* rowSeleccionado;
+	int c;
+	FILE *fpSalida;
+    FILE *yyout;
+    FILE *yyin;
+    if((fpSalida=fopen(archSalida,"w+"))==NULL){
+    	perror("fopen salida del reduce");
+    }
+    char *comando=malloc(strlen("./")+strlen(scriptReduce));
+   	sprintf(comando,"./%s ",scriptReduce);
+    yyout = (FILE *)popen(comando,"w");
+    yyin  = (FILE *)popen(comando,"r");
 	/*Obtengo los primeros registros de cada archivo, remoto o local */
 	Lista_reg=list_map(archivosAReducir,(void*)getFirstRowsFromArchivosAReducir);
 	bool _registroArchivo_menor(t_RegistroArch* reg, t_RegistroArch* regMenor){
@@ -132,14 +160,23 @@ int aparearArchivosDeLaListaArchivosAReducir(t_list* archivosAReducir){
 	while( !list_is_empty(Lista_reg)){
 		//siempre ordeno la lista de menor a mayor, y el primer elemento es el que va al pipe
 		list_sort(Lista_reg, (void*) _registroArchivo_menor);
-		//rowSeleccionado=apareoDeRegistros(Lista_reg);
 		rowSeleccionado=list_get(Lista_reg,0);
-
-		enviarRowAlPipeDelReduce(rowSeleccionado->registro);//aca me falta el pipe como parametro.
-
+		//enviar Row Al PipeDelReduce
+		fprintf(yyout,rowSeleccionado->registro);
 		// eliminar de la lista el registro procesado y obtener el registro sgte del mismo archivo
-		actualizarListaDeRegistros(Lista_reg);
+		actualizarListaDeRegistros(Lista_reg,rowSeleccionado);
+		while(((c = fgetc(yyin)) != EOF) && (c !='\n')){
+			fputc(c,fpSalida);
+		}
+		if(c=='\n'){
+			fputc(c,fpSalida);
+		}
 	}
+	//tengo que ver como hacerle llegar el EOF, sino talvez me de error de pipe roto.
+	//aunque si leyo todo, creo que no pasa nada.
+	pclose(yyin);
+	pclose(yyout);
+	fclose(fpSalida);
 	return 0;
 }
 

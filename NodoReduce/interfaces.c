@@ -125,7 +125,7 @@ void* conexionJobs(void* sockJobNodo){
 			break;
 
 		case ENVIO_ARCHIVOS_NODO_NODO:
-			char* archivoSolicitado;
+//			char* archivoSolicitado;
 
 			archivosRecibidos = list_create();
 			cantArchivosRecibidos = recibirInt(sock_in);
@@ -154,7 +154,7 @@ void* conexionJobs(void* sockJobNodo){
 		    numeroDeReduce++;
 		    pthread_mutex_unlock(&numeroReduce);
 		    //APAREAR ARCHIVOS DE LA LISTA ARCHIVOSAREDUCIR
-		    aparearArchivosDeLaListaArchivosAReducir(archivosAReducir);
+		    aparearArchivosDeLaListaArchivosAReducir(archivosAReducir,nombreScript,archivoSalida);
 		}
 	}
 
