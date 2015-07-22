@@ -5,6 +5,9 @@
  *      Author: utnso
  */
 #include "funcionesNodo.h"
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 uint32_t TAMANIODISCO, TAMANIOARCHIVO;
 int fd = -1, fd_a;
@@ -114,10 +117,13 @@ uint32_t obtenerDirBloque(uint32_t nroBloque){
 uint32_t obtener_tamanio_disco(char* path){
 
 	uint32_t tamanio_disco;
+	int len=strlen(path);
+	path[len]='\0';
+	printf("tamanio path: %d\n",len);
 
-	if ((fd = open(path, O_RDWR)) == -1)
+	if ((fd = open(path, O_RDWR)) == -1) {
 		err(1, "Nodo: Error al abrir midata1.bin (open)");
-
+	}
 		struct stat buf;
 		stat(path, &buf);
 		tamanio_disco = buf.st_size;
