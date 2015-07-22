@@ -86,6 +86,11 @@ void* conexionJobs(void* sockJobNodo){
 	char* nomArchSalida;
 	int cantArchReduce;
 	t_list* archivosAReducir;
+	//para etiqueta ENVIO_ARCHIVOS_NODO_NODO
+	t_buffer* buffer;
+	char* nombreArchivoSolicitado;
+	char* dataAEnviar;
+
 	while((recibido=recvall(sock_in,&protocolo,sizeof(int)))>1){
 		switch(protocolo){
 		case ORDER_MAP:
@@ -125,15 +130,23 @@ void* conexionJobs(void* sockJobNodo){
 			break;
 
 		case ENVIO_ARCHIVOS_NODO_NODO:
-//			char* archivoSolicitado;
+			// Recibo solicitud de archivoLocal de otro Nodo.
 
+			buffer=(t_buffer*)malloc(sizeof(t_buffer));
+			nombreArchivoSolicitado=recibirString(sock_in);
+			dataAEnviar=subirArchivoTmpABuffer(nombreArchivoSolicitado);
+			buffer->data=strdup(dataAEnviar);
+			buffer->tamanio=(strlen(dataAEnviar)+1);
+			enviarBuffer(buffer,sock_in);
+			break;
+/*
 			archivosRecibidos = list_create();
 			cantArchivosRecibidos = recibirInt(sock_in);
 			for(i=0;i<cantArchivosRecibidos;i++){
 				guardarEnDisco(recibirArchivo(sock_in));
 			}
 			break;
-
+*/
 		case ORDER_REDUCE:
 			archivosAReducir=list_create();
 			script=recibirString(sock_in);
